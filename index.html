@@ -1,176 +1,193 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Consult Wheel (Working)</title>
+  <title>WashU Head & Neck Staffing</title>
   <style>
-    body { font-family: Arial; text-align: center; }
-
-    .wheel-container {
-      position: relative;
-      width: 350px;
-      margin: 20px auto;
-    }
-
-    canvas {
-      border-radius: 50%;
-      border: 8px solid #333;
-    }
-
-    .pointer {
-      position: absolute;
-      top: -10px;
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: 30px;
-    }
-
-    button {
-      padding: 12px 24px;
-      font-size: 18px;
-      cursor: pointer;
-      margin-top: 10px;
-    }
+    body { font-family: Arial; margin: 20px; }
+    h1 { margin-bottom: 10px; }
+    table { border-collapse: collapse; margin-top: 10px; width: 100%; }
+    th, td { border: 1px solid #ccc; padding: 8px 12px; text-align: left; }
+    button { margin: 5px; padding: 8px 12px; }
+    select { padding: 6px; margin-right: 10px; }
+    .next-up { background-color: #e0ffe0; font-weight: bold; }
   </style>
 </head>
-
 <body>
 
-<h2>🎡 Shared Consult Wheel</h2>
+<h1>WashU Head & Neck Staffing</h1>
 
-<div class="wheel-container">
-  <div class="pointer">▼</div>
-  <canvas id="wheel" width="350" height="350"></canvas>
-</div>
+<select id="physicianSelect"></select>
+<button onclick="assignConsultToSelected()">Assign Consult</button>
+<button onclick="unassignConsult()">Unassign Consult</button>
+<button onclick="resetCounts()">Reset Counts</button>
 
-<button onclick="spin()">SPIN</button>
+<h4>🕒 Last Reset: <span id="lastReset">Never</span></h4>
 
-<h3 id="result"></h3>
+<h3>📌 Most Recent Consult: <span id="lastAssigned">None</span></h3>
+<h3>➡️ Next Up: <span id="nextUp">None</span></h3>
 
-<script type="module">
-// ✅ MODERN FIREBASE IMPORTS
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+<table id="table">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Consult Count</th>
+      <th>Last Assigned</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
 
-// 🔧 PASTE YOUR CONFIG HERE
-const firebaseConfig = {
-  apiKey: "AIzaSyAhgnZwNSE5nat94Tzy6I195wjRu7V1ITM",
-  authDomain: "washuhn.firebaseapp.com",
-  projectId: "washuhn",
-  storageBucket: "washuhn.firebasestorage.app",
-  messagingSenderId: "509224114115",
-  appId: "1:509224114115:web:27a7824bdfba4d4e45cf76"
-};
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore-compat.js"></script>
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+<script>
+  // ===== Firebase Config =====
+  const firebaseConfig = {
+    apiKey: "AIzaSyAhgnZwNSE5nat94Tzy6I195wjRu7V1ITM",
+    authDomain: "washuhn.firebaseapp.com",
+    projectId: "washuhn",
+    storageBucket: "washuhn.firebasestorage.app",
+    messagingSenderId: "509224114115",
+    appId: "1:509224114115:web:27a7824bdfba4d4e45cf76"
+  };
 
-const names = ["Puram","Pipkorn","Jackson","Rich","Wahle"];
-const colors = ["#FF6B6B","#4ECDC4","#FFD93D","#A29BFE","#55EFC4"];
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
 
-let counts = {};
+  // ===== Predefined physicians (alphabetical) =====
+  const defaultPhysicians = ["Harbison","Jackson","Pipkorn","Puram","Rich","Wahle"];
+  let physicians = [];
+  let lastReset = null;
 
-const canvas = document.getElementById("wheel");
-const ctx = canvas.getContext("2d");
-
-let angle = 0;
-
-// 🎨 DRAW WHEEL
-function drawWheel() {
-  const arc = (2 * Math.PI) / names.length;
-
-  for (let i = 0; i < names.length; i++) {
-    ctx.beginPath();
-    ctx.fillStyle = colors[i];
-    ctx.moveTo(175, 175);
-    ctx.arc(175, 175, 175, i * arc, (i + 1) * arc);
-    ctx.fill();
-
-    ctx.save();
-    ctx.translate(175, 175);
-    ctx.rotate(i * arc + arc / 2);
-    ctx.fillStyle = "#000";
-    ctx.fillText(names[i], 100, 5);
-    ctx.restore();
-  }
-}
-
-// 🔄 FIREBASE HELPERS
-async function getCounts() {
-  const ref = doc(db, "wheel", "counts");
-  const snap = await getDoc(ref);
-  return snap.exists() ? snap.data() : {};
-}
-
-async function saveCounts(c) {
-  const ref = doc(db, "wheel", "counts");
-  await setDoc(ref, c);
-}
-
-// ⚖️ FAIR PICK
-function pickFair() {
-  let min = Math.min(...Object.values(counts));
-  let candidates = names.filter(n => counts[n] === min);
-  return candidates[Math.floor(Math.random() * candidates.length)];
-}
-
-// 🎡 SPIN
-window.spin = async function() {
-  counts = await getCounts();
-  names.forEach(n => { if (!counts[n]) counts[n] = 0; });
-
-  let winner = pickFair();
-  let index = names.indexOf(winner);
-
-  const arc = 360 / names.length;
-  const targetAngle = (360 - index * arc) + (arc / 2);
-
-  let spinAngle = 360 * 5 + targetAngle;
-  let duration = 2000;
-  let start = null;
-
-  function animate(timestamp) {
-    if (!start) start = timestamp;
-    let progress = timestamp - start;
-
-    let current = easeOut(progress, 0, spinAngle, duration);
-    angle = current % 360;
-
-    ctx.clearRect(0, 0, 350, 350);
-    ctx.save();
-    ctx.translate(175,175);
-    ctx.rotate(angle * Math.PI / 180);
-    ctx.translate(-175,-175);
-    drawWheel();
-    ctx.restore();
-
-    if (progress < duration) {
-      requestAnimationFrame(animate);
-    } else {
-      finish(winner);
+  // ===== Ensure physicians exist in Firestore =====
+  async function initializePhysicians() {
+    for (const name of defaultPhysicians) {
+      const docRef = db.collection('physicians').doc(name);
+      const doc = await docRef.get();
+      if (!doc.exists) {
+        await docRef.set({ count: 0, lastAssigned: "" });
+      }
+    }
+    const resetDoc = await db.collection('metadata').doc('reset').get();
+    if (!resetDoc.exists) {
+      await db.collection('metadata').doc('reset').set({ lastReset: "" });
     }
   }
 
-  requestAnimationFrame(animate);
-};
+  // ===== Start app and listen for changes =====
+  async function startApp() {
+    await initializePhysicians();
 
-// 🧠 EASING
-function easeOut(t, b, c, d) {
-  t /= d;
-  return -c * t*(t-2) + b;
-}
+    db.collection('physicians').onSnapshot(snapshot => {
+      physicians = snapshot.docs.map(doc => ({
+        name: doc.id,
+        count: doc.data().count,
+        lastAssignedTime: doc.data().lastAssigned
+      }));
+      physicians.sort((a,b) => a.name.localeCompare(b.name));
+      populateDropdown();
+      render();
+    });
 
-// ✅ FINISH
-async function finish(winner)
-  counts[winner]++;
-  await saveCounts(counts);
+    db.collection('metadata').doc('reset').onSnapshot(doc => {
+      lastReset = doc.data().lastReset;
+      document.getElementById("lastReset").innerText = lastReset || "Never";
+    });
+  }
 
-  document.getElementById("result").innerHTML =
-    "<b>Today's attending: " + winner + "</b><br><br>" +
-    Object.entries(counts).map(([k,v]) => k + ": " + v).join("<br>");
-}
+  function populateDropdown() {
+    const select = document.getElementById("physicianSelect");
+    select.innerHTML = "";
+    physicians.forEach(p => {
+      const option = document.createElement("option");
+      option.value = p.name;
+      option.innerText = p.name;
+      select.appendChild(option);
+    });
+  }
 
-// INITIAL DRAW
-drawWheel();
+  function render() {
+    const nextUpPhysician = getNextUp();
+    const tbody = document.querySelector("#table tbody");
+    tbody.innerHTML = "";
+    physicians.forEach(p => {
+      const row = document.createElement("tr");
+      if (p.name === nextUpPhysician?.name) row.classList.add("next-up");
+      row.innerHTML = `
+        <td>${p.name}</td>
+        <td>${p.count}</td>
+        <td>${p.lastAssignedTime || ''}</td>
+      `;
+      tbody.appendChild(row);
+    });
+
+    document.getElementById("lastAssigned").innerText = getMostRecentConsult();
+    document.getElementById("nextUp").innerText = nextUpPhysician?.name || "None";
+  }
+
+  function getNextUp() {
+    if (physicians.length === 0) return null;
+    const minCount = Math.min(...physicians.map(p => p.count));
+    const eligible = physicians.filter(p => p.count === minCount)
+                               .sort((a,b) => a.name.localeCompare(b.name));
+    return eligible[0];
+  }
+
+  function getMostRecentConsult() {
+    if (physicians.length === 0) return "None";
+    const withTimestamps = physicians.filter(p => p.lastAssignedTime);
+    if (withTimestamps.length === 0) return "None";
+    withTimestamps.sort((a,b) => new Date(b.lastAssignedTime) - new Date(a.lastAssignedTime));
+    return withTimestamps[0].name;
+  }
+
+  // ===== Assign Consult =====
+  async function assignConsultToSelected() {
+    const selectedName = document.getElementById("physicianSelect").value;
+    const physician = physicians.find(p => p.name === selectedName);
+    if (!physician) return;
+
+    const now = new Date();
+    await db.collection('physicians').doc(selectedName).set({
+      count: physician.count + 1,
+      lastAssigned: now.toLocaleString()
+    }, { merge: true });
+  }
+
+  // ===== Unassign Consult with confirmation =====
+  async function unassignConsult() {
+    const selectedName = document.getElementById("physicianSelect").value;
+    const physician = physicians.find(p => p.name === selectedName);
+    if (!physician) return;
+
+    const confirmUnassign = confirm(`⚠️ Are you sure you want to unassign a consult for ${selectedName}?`);
+    if (!confirmUnassign) return;
+
+    const newCount = Math.max(physician.count - 1, 0);
+    await db.collection('physicians').doc(selectedName).set({
+      count: newCount,
+      lastAssigned: newCount === 0 ? "" : physician.lastAssignedTime
+    }, { merge: true });
+  }
+
+  // ===== Reset Counts with confirmation =====
+  async function resetCounts() {
+    const confirmReset = confirm("⚠️ Are you sure you want to reset all consult counts? This cannot be undone!");
+    if (!confirmReset) return;
+
+    const now = new Date();
+    for (let p of physicians) {
+      await db.collection('physicians').doc(p.name).set({
+        count: 0,
+        lastAssigned: ""
+      }, { merge: true });
+    }
+    const timestampStr = now.toLocaleString();
+    await db.collection('metadata').doc('reset').set({ lastReset: timestampStr });
+  }
+
+  startApp();
 </script>
 
 </body>
