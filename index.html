@@ -5,100 +5,165 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
+    /* Light mode default */
     :root {
       --bg: #f4f6f8;
       --card: #ffffff;
       --primary: #2c7be5;
       --success: #00a86b;
-      --recent: #4dabf7;
       --warning: #f0ad4e;
       --danger: #d9534f;
       --text: #2f3e4d;
       --muted: #7a8a99;
       --border: #e3e6ea;
+      --highlight: #e3f2ff;
     }
 
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial; background: var(--bg); margin: 0; color: var(--text); }
-    .container { max-width: 900px; margin: auto; padding: 16px; }
-    h1 { font-size: 1.4rem; margin-bottom: 12px; }
+    /* Dark mode */
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1e1e2f;
+        --card: #2c2c3e;
+        --primary: #4dabf7;
+        --success: #00a86b;
+        --warning: #f0ad4e;
+        --danger: #d9534f;
+        --text: #e0e0e0;
+        --muted: #a0a0b0;
+        --border: #3a3a4d;
+        --highlight: #3a3a5a;
+      }
+    }
 
-    .card { background: var(--card); border-radius: 12px; padding: 14px; margin-bottom: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial;
+      background: var(--bg);
+      margin: 0;
+      color: var(--text);
+    }
+
+    .container { max-width: 900px; margin: auto; padding: 16px; }
+    h1 { font-size: 1.4rem; margin-bottom: 12px; color: var(--text); }
+    h2 { font-size: 1rem; margin-bottom: 8px; color: var(--text); }
+
+    .card {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+
     .stats { display: flex; justify-content: space-between; gap: 10px; }
     .stat { flex: 1; text-align: center; }
     .stat-label { font-size: 0.75rem; color: var(--muted); }
     .stat-value { font-size: 1.3rem; font-weight: 600; }
     .next { color: var(--success); }
-    .recent { color: var(--recent); }
+    .recent { color: var(--primary); }
 
     .controls { display: flex; flex-direction: column; gap: 8px; }
-    select, button { padding: 12px; font-size: 16px; border-radius: 10px; border: 1px solid var(--border); }
-    button { border: none; color: white; font-weight: 500; }
-    .btn-primary { background: var(--primary); }
-    .btn-success { background: var(--success); }
+    select, button {
+      padding: 12px;
+      font-size: 16px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text);
+    }
+    button { border: none; font-weight: 500; }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-success { background: var(--success); color: #fff; }
     .btn-warning { background: var(--warning); color: black; }
-    .btn-danger { background: var(--danger); }
+    .btn-danger { background: var(--danger); color: #fff; }
 
     .table-card { padding: 0; overflow: hidden; }
     table { width: 100%; border-collapse: collapse; }
-    th { text-align: left; font-size: 0.75rem; color: var(--muted); padding: 10px; background: #fafbfc; }
+    th { text-align: left; font-size: 0.75rem; color: var(--muted); padding: 10px; background: var(--card); }
     td { padding: 12px 10px; border-top: 1px solid var(--border); font-size: 0.95rem; }
-    tr { cursor: pointer; }
-
-    tr.next-up { background: #d4f4e0; font-weight: 700; border-left: 4px solid var(--success); }
-    tr.last-assigned { background: #e0f0ff; font-weight: 600; border-left: 4px solid var(--recent); }
-    tr.selected { background: #fff3c4; font-weight: 600; border-left: 4px solid #f0ad4e; }
-
+    tr.next-up { background: var(--highlight); }
+    tr.selected { background: var(--primary); color: #fff; }
+    tr.next-up td:first-child { font-weight: 600; }
     .count { font-weight: 600; }
 
+    .activity-log {
+      display: flex;
+      flex-direction: column-reverse;
+      list-style: none;
+      padding: 0 10px;
+      margin: 0;
+      max-height: 250px;
+      overflow-y: auto;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+    .activity-log li { padding: 6px 0; font-size: 0.85rem; border-bottom: 1px solid var(--border); }
+    .activity-log li.assigned { color: var(--success); }
+    .activity-log li.removed { color: var(--danger); }
+    .activity-log li.reset { color: var(--warning); }
+
     #snackbar {
-      visibility: hidden; min-width: 250px; max-width: 90%;
-      background-color: #2f3e4d; color: #fff; border-radius: 10px;
-      padding: 14px 16px; position: fixed; left: 50%; bottom: 20px;
-      transform: translateX(-50%); z-index: 999; display: flex;
-      justify-content: space-between; align-items: center; gap: 10px;
+      visibility: hidden;
+      min-width: 250px;
+      max-width: 90%;
+      background-color: var(--card);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 14px 16px;
+      position: fixed;
+      left: 50%;
+      bottom: 20px;
+      transform: translateX(-50%);
+      z-index: 999;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.2);
     }
     #snackbar.show { visibility: visible; animation: fadein 0.2s, fadeout 0.2s 3s; }
-    #snackbar button { background: none; border: none; color: #4dabf7; font-weight: 600; cursor: pointer; }
+    #snackbar button { background: none; border: none; color: var(--primary); font-weight: 600; cursor: pointer; }
 
     @keyframes fadein { from { opacity: 0; bottom: 10px; } to { opacity: 1; bottom: 20px; } }
     @keyframes fadeout { from { opacity: 1; } to { opacity: 0; } }
 
-    @media (min-width: 768px) {
-      .controls { flex-direction: row; flex-wrap: wrap; }
-      select { flex: 2; } button { flex: 1; }
-    }
+    @media (min-width: 768px) { .controls { flex-direction: row; flex-wrap: wrap; } select { flex: 2; } button { flex: 1; } }
 
-    /* Activity Log Styles */
-    #activityLog { list-style: none; padding-left: 0; max-height: 200px; overflow-y: auto; font-size: 0.85rem; }
-    #activityLog li { padding: 4px 0; border-bottom: 1px solid #e3e6ea; }
-
-    /* User Modal Styles */
-    #userModal {
-      position: fixed; top:0; left:0; width:100%; height:100%;
-      background: rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center;
-      z-index:1000;
+    /* Modal styles */
+    #nameModal {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.4);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 1000;
     }
-    #userModal div { background:white; padding:24px; border-radius:12px; max-width:400px; width:90%; text-align:center; }
-    #userModal input { width:100%; padding:12px; font-size:16px; margin-top:8px; border-radius:8px; border:1px solid #ccc; }
-    #userModal button { margin-top:16px; padding:12px 24px; font-size:16px; border:none; border-radius:8px; background:#2c7be5; color:white; cursor:pointer; }
+    #nameModalContent {
+      background: var(--card); padding: 30px; border-radius: 12px; max-width: 400px; width: 90%; text-align: center;
+    }
+    #nameModalContent h2 { margin-bottom: 20px; color: var(--text); }
+    #nameModalContent p { margin-bottom: 20px; color: var(--muted); }
+    #userNameInput {
+      width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border);
+      margin-bottom: 20px; font-size: 16px; background: var(--bg); color: var(--text);
+    }
+    #submitName {
+      padding: 12px 20px; font-size: 16px; border-radius: 10px; border: none; background: var(--primary); color: white; cursor: pointer;
+    }
   </style>
 </head>
 
 <body>
 
-<!-- User Login Modal -->
-<div id="userModal">
-  <div>
+<!-- Name Modal -->
+<div id="nameModal">
+  <div id="nameModalContent">
     <h2>Welcome</h2>
-    <p>Please enter your full name for data tracking:</p>
-    <input type="text" id="fullNameInput" placeholder="Full Name">
-    <button id="submitName">Submit</button>
+    <p>Please enter your full name for tracking purposes:</p>
+    <input type="text" id="userNameInput" placeholder="Full Name" />
+    <button id="submitName">Continue</button>
   </div>
 </div>
 
 <div class="container" id="mainContainer" style="display:none;">
-
   <h1>Head & Neck Consult Dashboard</h1>
 
   <div class="card stats">
@@ -139,9 +204,8 @@
 
   <div class="card">
     <h2>Activity Log</h2>
-    <ul id="activityLog"></ul>
+    <ul id="activityLog" class="activity-log"></ul>
   </div>
-
 </div>
 
 <div id="snackbar"></div>
@@ -150,17 +214,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore-compat.js"></script>
 
 <script>
-  let currentUser = "";
-
-  document.getElementById("submitName").onclick = () => {
-    const input = document.getElementById("fullNameInput").value.trim();
-    if(!input){ alert("Please enter your full name!"); return; }
-    currentUser = input;
-    document.getElementById("userModal").style.display = "none";
-    document.getElementById("mainContainer").style.display = "block";
-    startApp();
-  };
-
+  // Firebase config
   const firebaseConfig = {
     apiKey: "YOUR_API_KEY",
     authDomain: "washuhn.firebaseapp.com",
@@ -170,162 +224,89 @@
   const db = firebase.firestore();
 
   const defaultPhysicians = ["Harbison","Jackson","Pipkorn","Puram","Rich","Wahle"];
-  let physicians = [];
-  let snackbarTimeout;
+  let physicians = [], selectedRow = null, currentUser = "";
+
+  // Modal login
+  document.getElementById("submitName").onclick = () => {
+    const input = document.getElementById("userNameInput").value.trim();
+    if(input){ currentUser=input; document.getElementById("nameModal").style.display="none"; document.getElementById("mainContainer").style.display="block"; startApp(); }
+    else alert("Please enter your full name to continue.");
+  };
 
   function showSnackbar(message, actionText, actionCallback) {
-    const bar = document.getElementById("snackbar");
-    bar.innerHTML = `<span>${message}</span>${actionText ? `<button id="snackbarAction">${actionText}</button>` : ""}`;
+    const bar=document.getElementById("snackbar");
+    bar.innerHTML=`<span>${message}</span>${actionText?`<button id="snackbarAction">${actionText}</button>`:""}`;
     bar.classList.add("show");
-    if (actionText && actionCallback) {
-      document.getElementById("snackbarAction").onclick = () => { actionCallback(); hideSnackbar(); };
-    }
-    clearTimeout(snackbarTimeout);
-    snackbarTimeout = setTimeout(hideSnackbar, 3000);
+    if(actionText && actionCallback){ document.getElementById("snackbarAction").onclick=()=>{ actionCallback(); hideSnackbar(); }; }
+    clearTimeout(window.snackbarTimeout); window.snackbarTimeout=setTimeout(hideSnackbar,3000);
   }
-  function hideSnackbar() { document.getElementById("snackbar").classList.remove("show"); }
+  function hideSnackbar(){ document.getElementById("snackbar").classList.remove("show"); }
 
-  async function initializePhysicians() {
-    for (const name of defaultPhysicians) {
-      const ref = db.collection('physicians').doc(name);
-      const doc = await ref.get();
-      if (!doc.exists) await ref.set({ count: 0, lastAssigned: "" });
-    }
-    const resetDoc = await db.collection('metadata').doc('reset').get();
-    if (!resetDoc.exists) await db.collection('metadata').doc('reset').set({ lastReset: "" });
+  function formatTimestamp(ts){ let date=ts?.toDate?ts.toDate():new Date(ts); return date.toLocaleString(undefined,{year:"numeric",month:"short",day:"numeric",hour:"2-digit",minute:"2-digit",hour12:false}); }
+
+  async function initializePhysicians(){
+    for(const name of defaultPhysicians){ const ref=db.collection('physicians').doc(name); const doc=await ref.get(); if(!doc.exists) await ref.set({ count:0,lastAssigned:"" }); }
+    const resetDoc=await db.collection('metadata').doc('reset').get(); if(!resetDoc.exists) await db.collection('metadata').doc('reset').set({ lastReset:"" });
   }
 
-  async function startApp() {
+  async function startApp(){
     await initializePhysicians();
-
-    db.collection('physicians').onSnapshot(snapshot => {
-      physicians = snapshot.docs.map(doc => ({
-        name: doc.id,
-        count: doc.data().count,
-        lastAssignedTime: doc.data().lastAssigned
-      }));
-      physicians.sort((a,b) => a.name.localeCompare(b.name));
-      populateDropdown();
-      render();
-    });
-
-    db.collection('metadata').doc('reset').onSnapshot(doc => {
-      document.getElementById("lastReset").innerText = doc.data().lastReset || "Never";
-    });
-
-    startLogListener();
-
-    document.getElementById("physicianSelect").onchange = () => {
-      const selectedName = document.getElementById("physicianSelect").value;
-      document.querySelectorAll("#table tbody tr").forEach(r => {
-        if (r.cells[0].innerText === selectedName) r.classList.add("selected");
-        else r.classList.remove("selected");
+    db.collection('physicians').onSnapshot(snapshot=>{ physicians=snapshot.docs.map(doc=>({ name:doc.id,count:doc.data().count,lastAssignedTime:doc.data().lastAssigned })); physicians.sort((a,b)=>a.name.localeCompare(b.name)); populateDropdown(); render(); });
+    db.collection('metadata').doc('reset').onSnapshot(doc=>{ document.getElementById("lastReset").innerText=doc.data().lastReset||"Never"; });
+    db.collection('logs').orderBy('timestamp','desc').limit(50).onSnapshot(snapshot=>{
+      const logEl=document.getElementById("activityLog"); logEl.innerHTML="";
+      snapshot.docs.forEach(doc=>{ const li=document.createElement("li"); const data=doc.data(); li.textContent=`${formatTimestamp(data.timestamp)} - ${data.user}: ${data.action}`;
+        if(data.action.includes("Assigned")) li.classList.add("assigned");
+        else if(data.action.includes("Removed")) li.classList.add("removed");
+        else if(data.action.includes("Reset")) li.classList.add("reset");
+        logEl.appendChild(li);
       });
-    };
-  }
-
-  function populateDropdown() {
-    const select = document.getElementById("physicianSelect");
-    select.innerHTML = "";
-    physicians.forEach(p => {
-      const opt = document.createElement("option");
-      opt.value = p.name; opt.innerText = p.name;
-      select.appendChild(opt);
+      logEl.scrollTop=0;
     });
   }
 
-  function render() {
-    const next = getNextUp();
-    const mostRecentName = getMostRecentConsult();
-    const tbody = document.querySelector("#table tbody");
-    tbody.innerHTML = "";
+  function populateDropdown(){ const select=document.getElementById("physicianSelect"); select.innerHTML=""; physicians.forEach(p=>{ const opt=document.createElement("option"); opt.value=p.name; opt.innerText=p.name; select.appendChild(opt); }); }
 
-    physicians.forEach(p => {
-      const row = document.createElement("tr");
-      if (p.name === next?.name) row.classList.add("next-up");
-      if (p.name === mostRecentName) row.classList.add("last-assigned");
-      row.innerHTML = `<td>${p.name}</td><td class="count">${p.count}</td><td>${p.lastAssignedTime || ''}</td>`;
-      row.onclick = () => {
-        document.getElementById("physicianSelect").value = p.name;
-        document.querySelectorAll("#table tbody tr").forEach(r => r.classList.remove("selected"));
-        row.classList.add("selected");
-      };
+  function render(){
+    const next=getNextUp();
+    const tbody=document.querySelector("#table tbody"); tbody.innerHTML="";
+    physicians.forEach(p=>{
+      const row=document.createElement("tr");
+      if(selectedRow===p.name) row.classList.add("selected");
+      if(p.name===next?.name) row.classList.add("next-up");
+      row.innerHTML=`<td>${p.name}</td><td class="count">${p.count}</td><td>${p.lastAssignedTime||''}</td>`;
+      row.onclick=()=>{ selectedRow=p.name; document.getElementById("physicianSelect").value=p.name; render(); };
       tbody.appendChild(row);
     });
-
-    document.getElementById("nextUp").innerText = next?.name || "None";
-    document.getElementById("lastAssigned").innerText = mostRecentName;
+    document.getElementById("nextUp").innerText=next?.name||"None";
+    document.getElementById("lastAssigned").innerText=getMostRecentConsult();
   }
 
-  function getNextUp() {
-    if (!physicians.length) return null;
-    const min = Math.min(...physicians.map(p => p.count));
-    return physicians.filter(p => p.count === min).sort((a,b) => new Date(a.lastAssignedTime || 0) - new Date(b.lastAssignedTime || 0))[0];
+  function getNextUp(){ if(!physicians.length) return null; const min=Math.min(...physicians.map(p=>p.count)); return physicians.filter(p=>p.count===min).sort((a,b)=>new Date(a.lastAssignedTime||0)-new Date(b.lastAssignedTime||0))[0]; }
+  function getMostRecentConsult(){ const valid=physicians.filter(p=>p.lastAssignedTime); if(!valid.length) return "None"; valid.sort((a,b)=>new Date(b.lastAssignedTime)-new Date(a.lastAssignedTime)); return valid[0].name; }
+
+  async function assignConsultByName(name){ const ref=db.collection('physicians').doc(name); await db.runTransaction(async tx=>{ const doc=await tx.get(ref); const now=new Date(); tx.update(ref,{ count:doc.data().count+1,lastAssigned:now.toLocaleString() }); });
+    showSnackbar(`Assigned consult to ${name}`); db.collection('logs').add({ timestamp:new Date(), user:currentUser, action:`Assigned consult to ${name}` }); }
+  async function assignNextUp(){ const next=getNextUp(); if(next) await assignConsultByName(next.name); }
+  async function assignConsultToSelected(){ await assignConsultByName(document.getElementById("physicianSelect").value); }
+
+  async function unassignConsult(){
+    const name=document.getElementById("physicianSelect").value;
+    const p=physicians.find(x=>x.name===name);
+    if(!p||p.count===0){ showSnackbar(`${name} already at 0`); return; }
+    await db.collection('physicians').doc(name).set({ count:p.count-1,lastAssigned:""},{merge:true});
+    showSnackbar(`Removed consult from ${name}`,"Undo",async()=>{ await assignConsultByName(name); });
+    db.collection('logs').add({ timestamp:new Date(), user:currentUser, action:`Removed consult from ${name}` });
   }
 
-  function getMostRecentConsult() {
-    const valid = physicians.filter(p => p.lastAssignedTime);
-    if (!valid.length) return "None";
-    valid.sort((a,b) => new Date(b.lastAssignedTime) - new Date(a.lastAssignedTime));
-    return valid[0].name;
+  async function resetCounts(){
+    const previousState=[...physicians];
+    for(let p of physicians){ await db.collection('physicians').doc(p.name).set({ count:0,lastAssigned:"" },{merge:true}); }
+    const now=new Date().toLocaleString(); await db.collection('metadata').doc('reset').set({ lastReset:now });
+    showSnackbar("All counts reset","Undo",async()=>{ for(let p of previousState){ await db.collection('physicians').doc(p.name).set({ count:p.count,lastAssigned:p.lastAssignedTime||"" },{merge:true}); } });
+    db.collection('logs').add({ timestamp:new Date(), user:currentUser, action:"Reset all counts" });
   }
 
-  async function logActivity(action, target) {
-    const now = new Date().toLocaleString();
-    await db.collection('logs').add({ user: currentUser, action, target, timestamp: now });
-  }
-
-  async function assignConsultByName(name) {
-    const ref = db.collection('physicians').doc(name);
-    await db.runTransaction(async tx => {
-      const doc = await tx.get(ref);
-      tx.update(ref, { count: doc.data().count + 1, lastAssigned: new Date().toLocaleString() });
-    });
-    await logActivity("Assigned consult", name);
-    showSnackbar(`Assigned consult to ${name}`);
-  }
-
-  async function assignConsultToSelected() { await assignConsultByName(document.getElementById("physicianSelect").value); }
-  async function assignNextUp() { const next = getNextUp(); if (next) await assignConsultByName(next.name); }
-
-  async function unassignConsult() {
-    const name = document.getElementById("physicianSelect").value;
-    const p = physicians.find(x => x.name === name);
-    if (!p || p.count === 0) { showSnackbar(`${name} already at 0`); return; }
-    const previousState = { count: p.count, lastAssigned: p.lastAssignedTime || "" };
-    await db.collection('physicians').doc(name).set({ count: p.count - 1, lastAssigned: "" }, { merge: true });
-    await logActivity("Unassigned consult", name);
-    showSnackbar(`Removed consult from ${name}`, "Undo", async () => {
-      await db.collection('physicians').doc(name).set(previousState, { merge: true });
-      await logActivity("Undo unassign", name);
-    });
-  }
-
-  async function resetCounts() {
-    const previousState = physicians.map(p => ({ name: p.name, count: p.count, lastAssigned: p.lastAssignedTime || "" }));
-    for (let p of physicians) await db.collection('physicians').doc(p.name).set({ count: 0, lastAssigned: "" }, { merge: true });
-    const now = new Date().toLocaleString();
-    await db.collection('metadata').doc('reset').set({ lastReset: now });
-    await logActivity("Reset all counts", "All Physicians");
-
-    showSnackbar("All counts reset", "Undo", async () => {
-      for (let p of previousState) await db.collection('physicians').doc(p.name).set({ count: p.count, lastAssigned: p.lastAssigned }, { merge: true });
-      await logActivity("Undo reset", "All Physicians");
-    });
-  }
-
-  function startLogListener() {
-    const logList = document.getElementById("activityLog");
-    db.collection('logs').orderBy('timestamp', 'desc').limit(10).onSnapshot(snapshot => {
-      logList.innerHTML = "";
-      snapshot.docs.forEach(doc => {
-        const data = doc.data();
-        const li = document.createElement("li");
-        li.textContent = `${data.timestamp} - ${data.user}: ${data.action} (${data.target})`;
-        logList.appendChild(li);
-      });
-    });
-  }
 </script>
 
 </body>
